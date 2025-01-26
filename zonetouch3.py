@@ -30,11 +30,8 @@ class Zonetouch3:
                     crc >>=1
         return format(crc, "04x")
 
-    #def hex_string(self, hex_data: list) -> str:
-    #    return ''.join(hex_data)
-    
     def hex_string(self, hex_data: list) -> str:
-        return ''.join([str(item) for item in hex_data])
+        return ''.join(hex_data)
 
     def hex_to_int(self, hex_data: str) -> int:
         return int(hex_data, 16)
@@ -57,10 +54,6 @@ class Zonetouch3:
 
         return data
 
-    def extract_bits(self, hex_data: str):
-        HEX_DATA_INT = self.hex_to_int(hex_data)
-
-
     def send_data(self, server_ip: str, server_port: int, hex_data: str) -> str:
         #print("Hex data being sent: " + hex_data)
         print(hex_data)
@@ -75,9 +68,12 @@ class Zonetouch3:
 
         return response_hex
 
+# Get all zone states not currently in use but may be useful in the future.
+
     def get_all_zone_states(self) -> str:
         # Example Response
-        # 55 55 55 AA B0 80 01 C0 0030 21 00 | 00 00 00 08 00 05 | 40649C6401F40000 | 41649C6401F40000 | 02649C0001F40000| 03649C0001F40000 | 44649C6401F40000 5350
+        #  Header    Address ID Type  Data Length  Sub Type    something             Z1                 Z2                Z3               Z4                 Z5              CRC16
+        # 555555AA    B080   01 C0    0030         21 00    | 00 00 00 08 00 05 | 40649C6401F40000 | 41649C6401F40000 | 02649C0001F40000| 03649C0001F40000 | 44649C6401F40000 5350
 
         ZONETOUCH_GROUP_STATES = []
         REQUEST_ZONE_STATE_HEX = ['55', '55', '55', 'aa', '80', 'b0', '01', 'c0', '00', '08', '21', '00', '00', '00', '00', '00', '00', '00', 'a4', '31']
@@ -131,6 +127,8 @@ class Zonetouch3:
         REQUEST_ZONE_STATE_STR = self.hex_string(REQUEST_ZONE_STATE_HEX)
         REQUEST_ZONE_STATE = self.send_data(self._address, self._port, REQUEST_ZONE_STATE_STR)
 
+        # 18 bytes of information in the responses before we get the data itself, so I start from that index.
+        # Each zone data will contain 8 bytes. Byte 2 bits7-1 contain the zone percentage information
         GROUP_DATA = self.extract_data(REQUEST_ZONE_STATE, 18 + (self._zone*8), 8)
         GROUP_OPEN_PERCENTAGE_HEX = self.extract_data(GROUP_DATA, 1, 1)
         GROUP_OPEN_PERCENTAGE_BIN = bin(int(GROUP_OPEN_PERCENTAGE_HEX, 16))[2:].zfill(8)
@@ -142,19 +140,25 @@ class Zonetouch3:
         return self._percentage
 
     def get_zone_state(self) -> str:
+        # There's no way that I have found either via the communications protocol document or by trial and error where I could get the individual state of a zone.
+        # Easiest way was to re-use and adjust get_all_zone_states 
+
         # Example Response
         # 55 55 55 AA B0 80 01 C0 0030 21 00 | 00 00 00 08 00 05 | 40649C6401F40000 | 41649C6401F40000 | 02649C0001F40000| 03649C0001F40000 | 44649C6401F40000 5350
+        
         REQUEST_ZONE_STATE_HEX = ['55', '55', '55', 'aa', '80', 'b0', '01', 'c0', '00', '08', '21', '00', '00', '00', '00', '00', '00', '00', 'a4', '31']
         REQUEST_ZONE_STATE_STR = self.hex_string(REQUEST_ZONE_STATE_HEX)
         REQUEST_ZONE_STATE = self.send_data(self._address, self._port, REQUEST_ZONE_STATE_STR)
 
+        # 18 bytes of information in the responses before we get the data itself, so I start from that index.
+        # Each zone data will contain 8 bytes. Byte 1 bits8-7 contain the power state, bits 6-1 are the group number
         GROUP_DATA = self.extract_data(REQUEST_ZONE_STATE, 18 + (self._zone*8), 8)
         GROUP_POWER_AND_ID_HEX = self.extract_data(GROUP_DATA, 0, 1)
         GROUP_POWER_AND_ID_BIN = bin(int(GROUP_POWER_AND_ID_HEX, 16))[2:].zfill(8)
         GROUP_POWER_BIN = GROUP_POWER_AND_ID_BIN[:2]
         GROUP_ID_BIN = GROUP_POWER_AND_ID_BIN[2:]
-        GROUP_ID_INT = int(GROUP_ID_BIN, 2)
 
+        # This will need adjusting in the future so you actually know if it's turbo or not. 
         match GROUP_POWER_BIN:
             case '00':
                 self._state = False #off
@@ -166,6 +170,8 @@ class Zonetouch3:
                 self._state = False #Unknown
 
         return self._state
+    
+    # Get all group names not currently in use but may be useful in the future.
 
     def get_all_group_names(self) -> list:
         ZONETOUCH_GROUPS = []
@@ -194,8 +200,8 @@ class Zonetouch3:
         REQUEST_ALL_GROUPS_STR = self.hex_string(REQUEST_ALL_GROUPS_HEX)
         REQUEST_ALL_GROUPS_RESP = self.send_data(self._address, self._port, REQUEST_ALL_GROUPS_STR)
 
-        DATA_LENGTH = self.hex_to_int(self.extract_data(REQUEST_ALL_GROUPS_RESP, 13, 2))
-
+        # Similar to the get_zone_state and get_zone_percentage, just isolating the names
+        # Names have a maximum of 12 bytes. Less than 12 bytes will just be zeros
         GROUP_NAME = self.hex_to_ascii(self.extract_data(REQUEST_ALL_GROUPS_RESP, 13 + 1 + (self._zone * 13), 12))
 
         return GROUP_NAME
@@ -203,8 +209,6 @@ class Zonetouch3:
     def update_zone_state(self, state: str, percentage: str) -> None:
         UPDATE_ZONE_STATE_HEX = ['55', '55', '55', 'aa', '80', 'b0', '0f', 'c0', '00', '0c', '20', '00', '00', '00', '00', '04', '00', '01', '00', '02', '00', '00', '00', '00']
         
-        #perc = self.int_to_hex(percentage)
-    
         UPDATE_ZONE_STATE_HEX[18] = '0' + str(self.int_to_hex(self._zone))
         UPDATE_ZONE_STATE_HEX[19] = state
         UPDATE_ZONE_STATE_HEX[20] = percentage
@@ -215,8 +219,7 @@ class Zonetouch3:
 
         UPDATE_ZONE_STATE_STR = self.hex_string(UPDATE_ZONE_STATE_HEX)
         UPDATE_ZONE_STATE = self.send_data(self._address, self._port, UPDATE_ZONE_STATE_STR)
-        #print(UPDATE_ZONE_STATE_STR)
-        #UPDATE_ZONE_STATE = self.send_data(self._address, self._port, UPDATE_ZONE_STATE_STR)
+    
 
 #zt3 = Zonetouch3('192.168.15.7', 7030, '02')
 #zt3.update_zone_state('03', '00')
