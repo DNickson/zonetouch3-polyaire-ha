@@ -115,18 +115,11 @@ class ZonetouchSensor(SensorEntity):
     
     def __init__(self, sensor) -> None:
         self._sensor = Zonetouch3(sensor["address"], sensor["port"], sensor["zone"])
-        self._attr_name = "Temperature"
+        self._attr_name = "Zonetouch Console Temperature"
         self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
         self._attr_device_class = SensorDeviceClass.TEMPERATURE
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_value = self._sensor.get_zonetouch_temp()
-
-        self._attr_extra_state_attributes = {
-            "system_name": "Your System Name",
-            "system_id": "Your System ID",
-            "installer_name": "Your Installer Name",
-            "installer_id": "Your Installer ID",
-        }
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
