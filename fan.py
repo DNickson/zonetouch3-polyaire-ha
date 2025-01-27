@@ -84,12 +84,12 @@ class zonetouch_3(FanEntity):
         return self._state
     
     def turn_on(self, **kwargs: Any) -> None:
-        self.fan.update_zone_state('03', '00')
+        self.fan.update_zone_state('03', 150)
         time.sleep(0.5)
         self.update()
     
     def turn_off(self, **kwargs: Any) -> None:
-        self.fan.update_zone_state('02', '00')
+        self.fan.update_zone_state('02', 150)
         time.sleep(0.5)
         self.update()
 
@@ -97,6 +97,11 @@ class zonetouch_3(FanEntity):
     def percentage(self) -> int | None:
         """Return the current percentage."""
         return self._attr_percentage
+    
+    def set_percentage(self, percentage: int) -> None:
+        self.fan.update_zone_state('80', percentage)
+        time.sleep(0.5)
+        self.update()
     
     def update(self) -> None:
         """Get live state of individual fan."""
