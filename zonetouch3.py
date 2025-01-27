@@ -1,5 +1,6 @@
 import socket
 import logging
+import math
 
 LOGGER = logging.getLogger("ZoneTouch3")
 
@@ -62,10 +63,7 @@ class Zonetouch3:
 
 
     def send_data(self, server_ip: str, server_port: int, hex_data: str) -> str:
-        #print("Hex data being sent: " + hex_data)
-        print(hex_data)
         dbytes = bytes.fromhex(hex_data)
-        print(dbytes)
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((self._address, self._port))
@@ -199,6 +197,70 @@ class Zonetouch3:
         GROUP_NAME = self.hex_to_ascii(self.extract_data(REQUEST_ALL_GROUPS_RESP, 13 + 1 + (self._zone * 13), 12))
 
         return GROUP_NAME
+    
+    def get_zonetouch_temp(self) -> int:
+        REQUEST_ALL_INFO_HEX = ['55','55','55','aa','90','b0','01','1f','00','02','ff','f0','cb','8c']
+        REQUEST_ALL_INFO_STR = self.hex_string(REQUEST_ALL_INFO_HEX)
+        REQUEST_ALL_INFO_STR_RESP = self.send_data(self._address, self._port, REQUEST_ALL_INFO_STR)
+
+        CONSOLE_RAW_TEMP = self.hex_to_int(self.extract_data(REQUEST_ALL_INFO_STR_RESP, 68, 2))
+        REAL_TEMP = math.ceil((CONSOLE_RAW_TEMP - 500) / 10)
+
+        return REAL_TEMP
+
+    def get_zonetouch_system_id(self) -> str:
+        REQUEST_ALL_INFO_HEX = ['55','55','55','aa','90','b0','01','1f','00','02','ff','f0','cb','8c']
+        REQUEST_ALL_INFO_STR = self.hex_string(REQUEST_ALL_INFO_HEX)
+        REQUEST_ALL_INFO_STR_RESP = self.send_data(self._address, self._port, REQUEST_ALL_INFO_STR)
+
+        CONSOLE_SYSTEM_ID = self.hex_to_ascii(self.extract_data(REQUEST_ALL_INFO_STR_RESP, 12, 8))
+
+        return CONSOLE_SYSTEM_ID
+    
+    def get_zonetouch_system_name(self) -> str:
+        REQUEST_ALL_INFO_HEX = ['55','55','55','aa','90','b0','01','1f','00','02','ff','f0','cb','8c']
+        REQUEST_ALL_INFO_STR = self.hex_string(REQUEST_ALL_INFO_HEX)
+        REQUEST_ALL_INFO_STR_RESP = self.send_data(self._address, self._port, REQUEST_ALL_INFO_STR)
+
+        CONSOLE_SYSTEM_NAME = self.hex_to_ascii(self.extract_data(REQUEST_ALL_INFO_STR_RESP, 20, 16))
+        
+        return CONSOLE_SYSTEM_NAME
+
+    def get_zonetouch_system_installer(self) -> str:
+        REQUEST_ALL_INFO_HEX = ['55','55','55','aa','90','b0','01','1f','00','02','ff','f0','cb','8c']
+        REQUEST_ALL_INFO_STR = self.hex_string(REQUEST_ALL_INFO_HEX)
+        REQUEST_ALL_INFO_STR_RESP = self.send_data(self._address, self._port, REQUEST_ALL_INFO_STR)
+
+        CONSOLE_INSTALLER_NAME = self.hex_to_ascii(self.extract_data(REQUEST_ALL_INFO_STR_RESP, 46, 10))
+        
+        return CONSOLE_INSTALLER_NAME
+    
+    def get_zonetouch_system_installer_number(self) -> str:
+        REQUEST_ALL_INFO_HEX = ['55','55','55','aa','90','b0','01','1f','00','02','ff','f0','cb','8c']
+        REQUEST_ALL_INFO_STR = self.hex_string(REQUEST_ALL_INFO_HEX)
+        REQUEST_ALL_INFO_STR_RESP = self.send_data(self._address, self._port, REQUEST_ALL_INFO_STR)
+
+        CONSOLE_INSTALLER_NUMBER = self.hex_to_ascii(self.extract_data(REQUEST_ALL_INFO_STR_RESP, 56, 12))
+        
+        return CONSOLE_INSTALLER_NUMBER
+    
+    def get_zonetouch_system_firmware(self) -> str:
+        REQUEST_ALL_INFO_HEX = ['55','55','55','aa','90','b0','01','1f','00','02','ff','f0','cb','8c']
+        REQUEST_ALL_INFO_STR = self.hex_string(REQUEST_ALL_INFO_HEX)
+        REQUEST_ALL_INFO_STR_RESP = self.send_data(self._address, self._port, REQUEST_ALL_INFO_STR)
+
+        CONSOLE_FIRMWARE = self.hex_to_ascii(self.extract_data(REQUEST_ALL_INFO_STR_RESP, 79, 7))
+       
+        return CONSOLE_FIRMWARE
+    
+    def get_zonetouch_console_version(self) -> str:
+        REQUEST_ALL_INFO_HEX = ['55','55','55','aa','90','b0','01','1f','00','02','ff','f0','cb','8c']
+        REQUEST_ALL_INFO_STR = self.hex_string(REQUEST_ALL_INFO_HEX)
+        REQUEST_ALL_INFO_STR_RESP = self.send_data(self._address, self._port, REQUEST_ALL_INFO_STR)
+
+        CONSOLE_VERSION = self.hex_to_ascii(self.extract_data(REQUEST_ALL_INFO_STR_RESP, 95, 7))
+
+        return CONSOLE_VERSION
 
     def update_zone_state(self, state: str, percentage: int) -> None:
         UPDATE_ZONE_STATE_HEX = ['55', '55', '55', 'aa', '80', 'b0', '0f', 'c0', '00', '0c', '20', '00', '00', '00', '00', '04', '00', '01', '00', '02', '00', '00', '00', '00']
@@ -219,4 +281,10 @@ class Zonetouch3:
         #UPDATE_ZONE_STATE = self.send_data(self._address, self._port, UPDATE_ZONE_STATE_STR)
 
 #zt3 = Zonetouch3('192.168.15.7', 7030, '02')
-#zt3.update_zone_state('03', '00')
+#print(zt3.get_zonetouch_temp())
+#print(zt3.get_zonetouch_system_id())
+#print(zt3.get_zonetouch_system_name())
+#print(zt3.get_zonetouch_system_installer())
+#print(zt3.get_zonetouch_system_installer_number())
+#print(zt3.get_zonetouch_system_firmware())
+#print(zt3.get_zonetouch_console_version())
