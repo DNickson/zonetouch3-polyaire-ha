@@ -61,7 +61,7 @@ class ZonetouchStaticSensor(SensorEntity):
     def __init__(self, sensor, name):
         self._sensor = Zonetouch3(sensor["address"], sensor["port"], sensor["zone"])
         self._attr_name = name
-        self._attr_unique_id = 'ZT3' + self._name
+        self._attr_unique_id = 'ZT3' + self._attr_name
         self._attr_native_value = self.fetch_data()
 
     def fetch_data(self):
@@ -117,7 +117,7 @@ class ZonetouchSensor(SensorEntity):
     def __init__(self, sensor) -> None:
         self._sensor = Zonetouch3(sensor["address"], sensor["port"], sensor["zone"])
         self._attr_name = "Zonetouch Console Temperature"
-        self._attr_unique_id = 'ZT3' + self._name
+        self._attr_unique_id = 'ZT3' + self._attr_name
         self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
         self._attr_device_class = SensorDeviceClass.TEMPERATURE
         self._attr_state_class = SensorStateClass.MEASUREMENT
