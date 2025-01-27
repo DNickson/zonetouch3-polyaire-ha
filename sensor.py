@@ -47,7 +47,7 @@ def setup_platform(
 
     add_entities(
             [
-                ZonetouchSensor({"name": config[CONF_NAME],"address": config[CONF_IP_ADDRESS],"port": config[CONF_PORT],"zone": 0,}),
+                ZonetouchSensor({"name": config[CONF_NAME],"address": config[CONF_IP_ADDRESS],"port": config[CONF_PORT],"zone": 0}),
                 ZonetouchStaticSensor({"name": config[CONF_NAME],"address": config[CONF_IP_ADDRESS],"port": config[CONF_PORT],"zone": 0}, "System Name"),
                 ZonetouchStaticSensor({"name": config[CONF_NAME],"address": config[CONF_IP_ADDRESS],"port": config[CONF_PORT],"zone": 0}, "System ID"),
                 ZonetouchStaticSensor({"name": config[CONF_NAME],"address": config[CONF_IP_ADDRESS],"port": config[CONF_PORT],"zone": 0}, "Installer Name"),
@@ -61,6 +61,7 @@ class ZonetouchStaticSensor(SensorEntity):
     def __init__(self, sensor, name):
         self._sensor = Zonetouch3(sensor["address"], sensor["port"], sensor["zone"])
         self._attr_name = name
+        self._attr_unique_id = 'ZT3' + self._name
         self._attr_native_value = self.fetch_data()
 
     def fetch_data(self):
@@ -116,6 +117,7 @@ class ZonetouchSensor(SensorEntity):
     def __init__(self, sensor) -> None:
         self._sensor = Zonetouch3(sensor["address"], sensor["port"], sensor["zone"])
         self._attr_name = "Zonetouch Console Temperature"
+        self._attr_unique_id = 'ZT3' + self._name
         self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
         self._attr_device_class = SensorDeviceClass.TEMPERATURE
         self._attr_state_class = SensorStateClass.MEASUREMENT
